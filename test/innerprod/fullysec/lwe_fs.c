@@ -19,14 +19,14 @@
 #include "sample/uniform.h"
 
 MunitResult test_lwe_fully_secure(const MunitParameter *params, void *data) {
-    size_t l = 4;  /* dimensionality of vector space for the inner product */
-    size_t n = 64;  /* security parameter */
+    size_t l = l_bench;  /* dimensionality of vector space for the inner product */
+    size_t n = n_bench;  /* security parameter */
 
     // maximal size of the entry of the message and other operand
     mpz_t bound_x, bound_x_neg, bound_y, bound_y_neg;
     mpz_inits(bound_x, bound_x_neg, bound_y, bound_y_neg, NULL);
-    mpz_set_ui(bound_x, 1000);
-    mpz_set_ui(bound_y, 1000);
+    mpz_set(bound_x, bound_bench);
+    mpz_set(bound_y, bound_bench);
     mpz_neg(bound_x_neg, bound_x);
     mpz_neg(bound_y_neg, bound_y);
 

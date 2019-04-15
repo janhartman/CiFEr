@@ -18,27 +18,22 @@
 #define CIFER_TEST_H
 
 #include <munit.h>
+#include <gmp.h>
 
-MunitSuite prime_suite;
-MunitSuite keygen_suite;
-MunitSuite matrix_suite;
-MunitSuite vector_suite;
-MunitSuite dlog_suite;
-MunitSuite big_suite;
-MunitSuite uniform_suite;
-MunitSuite normal_cumulative_suite;
-MunitSuite normal_negative_suite;
-MunitSuite normal_double_suite;
 MunitSuite ddh_suite;
 MunitSuite damgard_suite;
 MunitSuite ddh_multi_suite;
 MunitSuite damgard_multi_suite;
 MunitSuite lwe_suite;
 MunitSuite lwe_fully_secure_suite;
-MunitSuite ring_lwe_suite;
 MunitSuite paillier_suite;
 MunitSuite policy_suite;
 MunitSuite gpsw_suite;
 MunitSuite fame_suite;
+
+size_t n_bench;
+size_t l_bench;
+size_t b_bench;
+mpz_t bound_bench;
 
 #endif

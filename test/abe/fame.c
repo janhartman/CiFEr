@@ -32,9 +32,20 @@ MunitResult test_fame_end_to_end(const MunitParameter *params, void *data) {
     FP12_BN254 msg;
     FP12_BN254_one(&msg);
 
+    char b[10000];
+    char *bool_exp = b;
+    for (size_t i = 0; i < l_bench; i++) {
+        char tmp[3];
+        sprintf(tmp, "%lu", i);
+        bool_exp = strcat(bool_exp, tmp);
+
+        if (i < l_bench - 1) {
+            bool_exp = strcat(bool_exp, " AND ");
+        }
+    }
+
     // create a msp structure out of a boolean expression representing the
     // policy specifying which attributes are needed to decrypt the ciphertext
-    char bool_exp[] = "(5 OR 3) AND ((2 OR 4) OR (1 AND 6))";
     cfe_msp msp;
     cfe_error err = cfe_boolean_to_msp(&msp, bool_exp, false);
     munit_assert(err == CFE_ERR_NONE);
@@ -47,10 +58,13 @@ MunitResult test_fame_end_to_end(const MunitParameter *params, void *data) {
 
     // produce keys that are given to an entity with a set
     // of attributes in owned_attrib
-    int owned_attrib[] = {1, 3, 6};
+    int* owned_attrib = malloc(sizeof(int) * l_bench);
+    for (size_t i = 0; i < l_bench; i++) {
+        owned_attrib[i] = (int) i;
+    }
     cfe_fame_attrib_keys keys;
-    cfe_fame_attrib_keys_init(&keys, 3); // the number of attributes needs to be specified
-    cfe_fame_generate_attrib_keys(&keys, owned_attrib, 3, &sk, &fame);
+    cfe_fame_attrib_keys_init(&keys, l_bench); // the number of attributes needs to be specified
+    cfe_fame_generate_attrib_keys(&keys, owned_attrib, l_bench, &sk, &fame);
 
     // decrypt the message with owned keys
     FP12_BN254 decryption;

@@ -21,13 +21,13 @@
 
 MunitResult test_lwe(const MunitParameter *params, void *data) {
     // Length of data vectors x, y
-    size_t l = 4;
-    size_t n = 128;
+    size_t l = l_bench;
+    size_t n = n_bench;
 
     // message space size
     mpz_t B, B_neg;
-    mpz_init_set_ui(B, 10000);
-    mpz_init(B_neg);
+    mpz_inits(B, B_neg, NULL);
+    mpz_set(B, bound_bench);
     mpz_neg(B_neg, B);
 
     // Operands for the inner product

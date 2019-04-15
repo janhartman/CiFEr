@@ -26,7 +26,7 @@ MunitResult test_gpsw_end_to_end(const MunitParameter *params, void *data) {
     // create a new GPSW struct with the universe of l possible
     // attributes (attributes are denoted by the integers in [0, l)
     cfe_gpsw gpsw;
-    cfe_gpsw_init(&gpsw, 10);
+    cfe_gpsw_init(&gpsw, l_bench);
 
     // generate a public key and a secret key for the scheme
     cfe_gpsw_pub_key pk;
@@ -40,16 +40,30 @@ MunitResult test_gpsw_end_to_end(const MunitParameter *params, void *data) {
 
     // define a set of attributes (a subset of the universe of attributes)
     // that will later be used in the decryption policy of the message
-    int gamma[] = {2, 1, 3, 4, 5, 6, 7};
+    int* gamma = malloc(sizeof(int) * l_bench);
+    for (size_t i = 0; i < l_bench; i++) {
+        gamma[i] = (int) i;
+    }
 
     // encrypt the message
     cfe_gpsw_cipher cipher;
-    cfe_gpsw_cipher_init(&cipher, 7);
-    cfe_gpsw_encrypt(&cipher, &gpsw, &msg, gamma, 7, &pk);
+    cfe_gpsw_cipher_init(&cipher, l_bench);
+    cfe_gpsw_encrypt(&cipher, &gpsw, &msg, gamma, l_bench, &pk);
+
+    char b[10000];
+    char *bool_exp = b;
+    for (size_t i = 0; i < l_bench; i++) {
+        char tmp[3];
+        sprintf(tmp, "%lu", i);
+        bool_exp = strcat(bool_exp, tmp);
+
+        if (i < l_bench - 1) {
+            bool_exp = strcat(bool_exp, " AND ");
+        }
+    }
 
     // create a msp struct out of a boolean expression  representing the
     // policy specifying which attributes are needed to decrypt the ciphertext
-    char bool_exp[] = "(5 OR 3) AND ((2 OR 4) OR (1 AND 6))";
     cfe_msp msp;
     cfe_error err = cfe_boolean_to_msp(&msp, bool_exp, true);
     munit_assert(err == CFE_ERR_NONE);
@@ -65,10 +79,10 @@ MunitResult test_gpsw_end_to_end(const MunitParameter *params, void *data) {
 
     // produce a set of keys that are given to an entity with a set
     // of attributes in owned_attrib
-    int owned_attrib[] = {1, 3, 6};
+    int* owned_attrib = gamma;
     cfe_gpsw_keys keys;
-    cfe_gpsw_keys_init(&keys, &msp, owned_attrib, 3);
-    cfe_gpsw_delegate_keys(&keys, &policy_keys, &msp, owned_attrib, 3);
+    cfe_gpsw_keys_init(&keys, &msp, owned_attrib, l_bench);
+    cfe_gpsw_delegate_keys(&keys, &policy_keys, &msp, owned_attrib, l_bench);
 
     // decrypt the message with owned keys
     FP12_BN254 decrypted;
@@ -78,17 +92,6 @@ MunitResult test_gpsw_end_to_end(const MunitParameter *params, void *data) {
     // check if the decrypted message equals the starting message
     munit_assert(FP12_BN254_equals(&msg, &decrypted) == 1);
 
-    // produce a insufficient set of keys that are given to an entity with
-    // a set of attributes in insuff_attrib
-    int insuff_attrib[] = {1, 2, 6};
-    cfe_gpsw_keys insuff_keys;
-    cfe_gpsw_keys_init(&insuff_keys, &msp, insuff_attrib, 3);
-    cfe_gpsw_delegate_keys(&insuff_keys, &policy_keys, &msp, insuff_attrib, 3);
-
-    // check if the decryption is denied
-    check = cfe_gpsw_decrypt(&decrypted, &cipher, &insuff_keys, &gpsw);
-    munit_assert(check == CFE_ERR_INSUFFICIENT_KEYS);
-
     // cleanup
     cfe_gpsw_free(&gpsw);
     cfe_vec_free(&sk);
@@ -96,7 +99,6 @@ MunitResult test_gpsw_end_to_end(const MunitParameter *params, void *data) {
     cfe_gpsw_cipher_free(&cipher);
     cfe_vec_G1_free(&policy_keys);
     cfe_gpsw_keys_free(&keys);
-    cfe_gpsw_keys_free(&insuff_keys);
     cfe_msp_free(&msp);
 
     return MUNIT_OK;

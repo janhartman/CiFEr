@@ -21,13 +21,12 @@
 #include "sample/uniform.h"
 
 MunitResult test_paillier_end_to_end(const MunitParameter *params, void *data) {
-    size_t l = 50;
+    size_t l = l_bench;
     size_t lambda = 128;
-    size_t bit_len = 512;
+    size_t bit_len = n_bench;
     mpz_t bound_x, bound_y, derived_key, xy_check, xy, bound_x_neg, bound_y_neg;
     mpz_inits(bound_x, bound_y, derived_key, xy_check, xy, bound_x_neg, bound_y_neg, NULL);
-    mpz_set_ui(bound_x, 2);
-    mpz_pow_ui(bound_x, bound_x, 10);
+    mpz_set(bound_x, bound_bench);
     mpz_set(bound_y, bound_x);
     mpz_neg(bound_x_neg, bound_x);
     mpz_add_ui(bound_x_neg, bound_x_neg, 1);

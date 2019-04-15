@@ -20,13 +20,12 @@
 #include "sample/uniform.h"
 
 MunitResult test_ddh_end_to_end(const MunitParameter *params, void *data) {
-    size_t l = 3;
-    size_t modulus_len = 128;
+    size_t l = l_bench;
+    size_t modulus_len = n_bench;
 
     mpz_t bound, bound_neg, func_key, xy_check, xy;
     mpz_inits(bound, bound_neg, func_key, xy_check, xy, NULL);
-    mpz_set_ui(bound, 2);
-    mpz_pow_ui(bound, bound, 15);
+    mpz_set(bound, bound_bench);
     mpz_neg(bound_neg, bound);
 
     cfe_ddh s, encryptor, decryptor;
