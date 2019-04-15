@@ -24,6 +24,7 @@
 
 
 cfe_error cfe_damgard_init(cfe_damgard *s, size_t l, size_t modulus_len, mpz_t bound) {
+    clock_t start = clock();
     cfe_elgamal key;
     if (cfe_elgamal_init(&key, modulus_len)) {
         return CFE_ERR_PARAM_GEN_FAILED;
@@ -53,6 +54,10 @@ cfe_error cfe_damgard_init(cfe_damgard *s, size_t l, size_t modulus_len, mpz_t b
     cleanup:
     cfe_elgamal_free(&key);
     mpz_clear(check);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nDamgard_Init %.6f\n", time);
+
     return err;
 }
 
@@ -87,6 +92,7 @@ void cfe_damgard_derived_key_free(cfe_damgard_fe_key *key) {
 
 // mpk must be uninitialized!
 void cfe_damgard_generate_master_keys(cfe_damgard_sec_key *msk, cfe_vec *mpk, cfe_damgard *s) {
+    clock_t start = clock();
     mpz_t s_i, t_i, y1, y2, r, p_min_1;
     mpz_inits(s_i, t_i, y1, y2, r, p_min_1, NULL);
 
@@ -107,6 +113,10 @@ void cfe_damgard_generate_master_keys(cfe_damgard_sec_key *msk, cfe_vec *mpk, cf
     }
 
     mpz_clears(s_i, t_i, y1, y2, r, p_min_1, NULL);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nDamgard_KeyGen %.6f\n", time);
+
 }
 
 void cfe_damgard_fe_key_init(cfe_damgard_fe_key *fe_key) {
@@ -115,6 +125,7 @@ void cfe_damgard_fe_key_init(cfe_damgard_fe_key *fe_key) {
 
 cfe_error
 cfe_damgard_derive_key(cfe_damgard_fe_key *fe_key, cfe_damgard *s, cfe_damgard_sec_key *msk, cfe_vec *y) {
+    clock_t start = clock();
     if (!cfe_vec_check_bound(y, s->bound)) {
         return CFE_ERR_BOUND_CHECK_FAILED;
     }
@@ -130,6 +141,10 @@ cfe_damgard_derive_key(cfe_damgard_fe_key *fe_key, cfe_damgard *s, cfe_damgard_s
     mpz_mod(fe_key->key2, fe_key->key2, p_min_1);
 
     mpz_clear(p_min_1);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nDamgard_KeyDerive %.6f\n", time);
+
     return CFE_ERR_NONE;
 }
 
@@ -138,6 +153,7 @@ void cfe_damgard_ciphertext_init(cfe_vec *ciphertext, cfe_damgard *s) {
 }
 
 cfe_error cfe_damgard_encrypt(cfe_vec *ciphertext, cfe_damgard *s, cfe_vec *x, cfe_vec *mpk) {
+    clock_t start = clock();
     if (!cfe_vec_check_bound(x, s->bound)) {
         return CFE_ERR_BOUND_CHECK_FAILED;
     }
@@ -164,11 +180,16 @@ cfe_error cfe_damgard_encrypt(cfe_vec *ciphertext, cfe_damgard *s, cfe_vec *x, c
     }
 
     mpz_clears(r, ct, t1, t2, NULL);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nDamgard_Encrypt %.6f\n", time);
+
     return CFE_ERR_NONE;
 }
 
 
 cfe_error cfe_damgard_decrypt(mpz_t res, cfe_damgard *s, cfe_vec *ciphertext, cfe_damgard_fe_key *key, cfe_vec *y) {
+    clock_t start = clock();
     if (!cfe_vec_check_bound(y, s->bound)) {
         return CFE_ERR_BOUND_CHECK_FAILED;
     }
@@ -207,5 +228,9 @@ cfe_error cfe_damgard_decrypt(mpz_t res, cfe_damgard *s, cfe_vec *ciphertext, cf
     cfe_error err = cfe_baby_giant_with_neg(res, r, s->g, s->p, order, bound);
 
     mpz_clears(num, ct, t1, t2, denom, denom_inv, r, order, bound, NULL);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nDamgard_Decrypt %.6f\n", time);
+
     return err;
 }

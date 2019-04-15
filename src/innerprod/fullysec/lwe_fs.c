@@ -24,6 +24,7 @@
 // Initializes scheme struct with the desired confifuration
 // and configures public parameters for the scheme.
 cfe_error cfe_lwe_fs_init(cfe_lwe_fs *s, size_t l, size_t n, mpz_t bound_x, mpz_t bound_y) {
+    clock_t start = clock();
     cfe_error err = CFE_ERR_NONE;
 
     s->l = l;
@@ -121,6 +122,9 @@ cfe_error cfe_lwe_fs_init(cfe_lwe_fs *s, size_t l, size_t n, mpz_t bound_x, mpz_
     cleanup:
     mpf_clears(max, sqrt_max, tmp, k_f, k_squared_f, sigma, sigma_prime, bound2, one, bound_for_q, NULL);
     mpz_clear(bound_for_q_z);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nLWEFS_Init %.6f\n", time);
 
     return err;
 }
@@ -130,6 +134,7 @@ void cfe_lwe_fs_sec_key_init(cfe_mat *SK, cfe_lwe_fs *s) {
 }
 
 cfe_error cfe_lwe_fs_generate_sec_key(cfe_mat *SK, cfe_lwe_fs *s) {
+    clock_t start = clock();
     mpf_t one;
     mpf_init_set_ui(one, 1);
 
@@ -168,6 +173,10 @@ cfe_error cfe_lwe_fs_generate_sec_key(cfe_mat *SK, cfe_lwe_fs *s) {
     mpf_clear(one);
     cfe_normal_double_free(&sampler1);
     cfe_normal_double_free(&sampler2);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nLWEFS_KeyGen1 %.6f\n", time);
+
     return CFE_ERR_NONE;
 }
 
@@ -176,12 +185,17 @@ void cfe_lwe_fs_pub_key_init(cfe_mat *PK, cfe_lwe_fs *s) {
 }
 
 cfe_error cfe_lwe_fs_generate_pub_key(cfe_mat *PK, cfe_lwe_fs *s, cfe_mat *SK) {
+    clock_t start = clock();
     if (SK->rows != s->l || SK->cols != s->m) {
         return CFE_ERR_MALFORMED_SEC_KEY;
     }
 
     cfe_mat_mul(PK, SK, &s->A);
     cfe_mat_mod(PK, PK, s->q);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nLWEFS_KeyGen2 %.6f\n", time);
+
     return CFE_ERR_NONE;
 }
 
@@ -191,6 +205,7 @@ void cfe_lwe_fs_fe_key_init(cfe_vec *z_y, cfe_lwe_fs *s) {
 
 // generates a key (vector) z_y that only decrypts the inner product with y
 cfe_error cfe_lwe_fs_derive_key(cfe_vec *z_y, cfe_lwe_fs *s, cfe_vec *y, cfe_mat *SK) {
+    clock_t start = clock();
     if (!cfe_vec_check_bound(y, s->bound_y)) {
         return CFE_ERR_BOUND_CHECK_FAILED;
     }
@@ -200,6 +215,10 @@ cfe_error cfe_lwe_fs_derive_key(cfe_vec *z_y, cfe_lwe_fs *s, cfe_vec *y, cfe_mat
 
     cfe_vec_mul_matrix(z_y, y, SK);
     cfe_vec_mod(z_y, z_y, s->q);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nLWEFS_KeyDerive %.6f\n", time);
+
     return CFE_ERR_NONE;
 }
 
@@ -209,6 +228,7 @@ void cfe_lwe_fs_ciphertext_init(cfe_vec *ct, cfe_lwe_fs *s) {
 
 // Encrypts vector x using a public key.
 cfe_error cfe_lwe_fs_encrypt(cfe_vec *ct, cfe_lwe_fs *s, cfe_vec *x, cfe_mat *PK) {
+    clock_t start = clock();
     if (!cfe_vec_check_bound(x, s->bound_x)) {
         return CFE_ERR_BOUND_CHECK_FAILED;
     }
@@ -264,12 +284,17 @@ cfe_error cfe_lwe_fs_encrypt(cfe_vec *ct, cfe_lwe_fs *s, cfe_vec *x, cfe_mat *PK
     mpf_clear(one);
     cfe_vec_frees(&r, &t, &e0, &e1, &c0, &c1, NULL);
     cfe_normal_double_free(&sampler);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nLWEFS_Encrypt %.6f\n", time);
+
     return CFE_ERR_NONE;
 }
 
 // Decrypts a the inner product of the message times a vector out of
 // the encryption, using a key generated for this. Saves it to res.
 cfe_error cfe_lwe_fs_decrypt(mpz_t res, cfe_lwe_fs *s, cfe_vec *ct, cfe_vec *z_y, cfe_vec *y) {
+    clock_t start = clock();
     if (!cfe_vec_check_bound(y, s->bound_y)) {
         return CFE_ERR_BOUND_CHECK_FAILED;
     }
@@ -312,6 +337,10 @@ cfe_error cfe_lwe_fs_decrypt(mpz_t res, cfe_lwe_fs *s, cfe_vec *ct, cfe_vec *z_y
 
     mpz_clears(y_dot_c1, z_y_dot_c0, mu1, k_times_2, q_div_k_times_2, q_div_k, half_q, NULL);
     cfe_vec_frees(&c0, &c1, NULL);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nLWEFS_Decrypt %.6f\n", time);
+
     return CFE_ERR_NONE;
 }
 

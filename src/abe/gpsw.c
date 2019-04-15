@@ -26,9 +26,14 @@
 #include "abe/gpsw.h"
 
 void cfe_gpsw_init(cfe_gpsw *gpsw, size_t l) {
+    clock_t start = clock();
     gpsw->l = l;
     mpz_init(gpsw->p);
     mpz_from_BIG_256_56(gpsw->p, (int64_t *) CURVE_Order_BN254);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nGPSW_Init %.6f\n", time);
+
 }
 
 void cfe_gpsw_master_keys_init(cfe_gpsw_pub_key *pk, cfe_vec *sk, cfe_gpsw *gpsw) {
@@ -37,6 +42,7 @@ void cfe_gpsw_master_keys_init(cfe_gpsw_pub_key *pk, cfe_vec *sk, cfe_gpsw *gpsw
 }
 
 void cfe_gpsw_generate_master_keys(cfe_gpsw_pub_key *pk, cfe_vec *sk, cfe_gpsw *gpsw) {
+    clock_t start = clock();
     cfe_uniform_sample_vec(sk, gpsw->p);
 
     cfe_vec sub_sk;
@@ -55,6 +61,10 @@ void cfe_gpsw_generate_master_keys(cfe_gpsw_pub_key *pk, cfe_vec *sk, cfe_gpsw *
     BIG_256_56_from_mpz(x, sk->vec[gpsw->l]);
     FP12_BN254_pow(&(pk->y), &gT, x);
 
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nGPSW_KeyGen %.6f\n", time);
+
     cfe_vec_free(&sub_sk);
 }
 
@@ -65,6 +75,7 @@ void cfe_gpsw_cipher_init(cfe_gpsw_cipher *cipher, size_t num_attrib) {
 
 void cfe_gpsw_encrypt(cfe_gpsw_cipher *cipher, cfe_gpsw *gpsw, FP12_BN254 *msg,
                       int *gamma, size_t num_attrib, cfe_gpsw_pub_key *pk) {
+    clock_t start = clock();
     mpz_t s;
     mpz_init(s);
     cfe_uniform_sample(s, gpsw->p);
@@ -78,6 +89,10 @@ void cfe_gpsw_encrypt(cfe_gpsw_cipher *cipher, cfe_gpsw *gpsw, FP12_BN254 *msg,
         cipher->e.vec[i] = (pk->t).vec[gamma[i]];
         ECP2_BN254_mul(&(cipher->e.vec[i]), s_big);
     }
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nGPSW_Encrypt %.6f\n", time);
+
 
     mpz_clear(s);
 }
@@ -100,6 +115,7 @@ void cfe_gpsw_policy_keys_init(cfe_vec_G1 *policy_keys, cfe_msp *msp) {
 
 void cfe_gpsw_generate_policy_keys(cfe_vec_G1 *policy_keys, cfe_gpsw *gpsw,
                                    cfe_msp *msp, cfe_vec *sk) {
+    clock_t start = clock();
     cfe_vec u;
     cfe_vec_init(&u, msp->mat.cols);
     cfe_gpsw_rand_vec_const_sum(&u, sk->vec[gpsw->l], gpsw->p);
@@ -120,6 +136,10 @@ void cfe_gpsw_generate_policy_keys(cfe_vec_G1 *policy_keys, cfe_gpsw *gpsw,
 
     cfe_vec_free(&u);
     mpz_clears(t_map_i_inv, mat_times_u, pow, NULL);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nGPSW_KeyDerive1 %.6f\n", time);
+
 }
 
 void cfe_gpsw_keys_init(cfe_gpsw_keys *keys, cfe_msp *msp, int *attrib, size_t num_attrib) {
@@ -142,6 +162,7 @@ void cfe_gpsw_keys_init(cfe_gpsw_keys *keys, cfe_msp *msp, int *attrib, size_t n
 
 void cfe_gpsw_delegate_keys(cfe_gpsw_keys *keys, cfe_vec_G1 *policy_keys,
                             cfe_msp *msp, int *attrib, size_t num_attrib) {
+    clock_t start = clock();
     size_t count_attrib = 0;
     size_t *positions = (size_t *) cfe_malloc(sizeof(size_t) * keys->mat.rows);
 
@@ -162,10 +183,15 @@ void cfe_gpsw_delegate_keys(cfe_gpsw_keys *keys, cfe_vec_G1 *policy_keys,
     }
 
     free(positions);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nGPSW_KeyDerive2 %.6f\n", time);
+
 }
 
 
 cfe_error cfe_gpsw_decrypt(FP12_BN254 *res, cfe_gpsw_cipher *cipher, cfe_gpsw_keys *keys, cfe_gpsw *gpsw) {
+    clock_t start = clock();
     cfe_vec one_vec, alpha;
     mpz_t one;
     mpz_init_set_ui(one, 1);
@@ -210,6 +236,9 @@ cfe_error cfe_gpsw_decrypt(FP12_BN254 *res, cfe_gpsw_cipher *cipher, cfe_gpsw_ke
 
     cfe_vec_free(&alpha);
     free(positions);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nGPSW_Decrypt %.6f\n", time);
 
     return CFE_ERR_NONE;
 }

@@ -23,6 +23,7 @@
 #include "sample/uniform.h"
 
 cfe_error cfe_ddh_init(cfe_ddh *s, size_t l, size_t modulus_len, mpz_t bound) {
+    clock_t start = clock();
     cfe_elgamal key;
     if (cfe_elgamal_init(&key, modulus_len)) {
         return CFE_ERR_PARAM_GEN_FAILED;
@@ -49,6 +50,11 @@ cfe_error cfe_ddh_init(cfe_ddh *s, size_t l, size_t modulus_len, mpz_t bound) {
     cleanup:
     cfe_elgamal_free(&key);
     mpz_clear(check);
+
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+
+    printf("\nDDH_Init %.6f\n", time);
     return err;
 }
 
@@ -73,6 +79,7 @@ void cfe_ddh_ciphertext_init(cfe_vec *ciphertext, cfe_ddh *s) {
 }
 
 void cfe_ddh_generate_master_keys(cfe_vec *msk, cfe_vec *mpk, cfe_ddh *s) {
+    clock_t start = clock();
     mpz_t x, p_min_1;
     mpz_inits(x, p_min_1, NULL);
     mpz_sub_ui(p_min_1, s->p, 1);
@@ -85,9 +92,13 @@ void cfe_ddh_generate_master_keys(cfe_vec *msk, cfe_vec *mpk, cfe_ddh *s) {
     }
 
     mpz_clears(x, p_min_1, NULL);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nDDH_KeyGen %.6f\n", time);
 }
 
 cfe_error cfe_ddh_derive_key(mpz_t res, cfe_ddh *s, cfe_vec *msk, cfe_vec *y) {
+    clock_t start = clock();
     if (!cfe_vec_check_bound(y, s->bound)) {
         return CFE_ERR_BOUND_CHECK_FAILED;
     }
@@ -98,10 +109,15 @@ cfe_error cfe_ddh_derive_key(mpz_t res, cfe_ddh *s, cfe_vec *msk, cfe_vec *y) {
     mpz_sub_ui(p_min_one, s->p, 1);
     mpz_mod(res, res, p_min_one);
     mpz_clear(p_min_one);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nDDH_KeyDerive %.6f\n", time);
     return CFE_ERR_NONE;
 }
 
 cfe_error cfe_ddh_encrypt(cfe_vec *ciphertext, cfe_ddh *s, cfe_vec *x, cfe_vec *mpk) {
+    clock_t start = clock();
+
     if (!cfe_vec_check_bound(x, s->bound)) {
         return CFE_ERR_BOUND_CHECK_FAILED;
     }
@@ -126,10 +142,14 @@ cfe_error cfe_ddh_encrypt(cfe_vec *ciphertext, cfe_ddh *s, cfe_vec *x, cfe_vec *
     }
 
     mpz_clears(r, ct, t1, t2, NULL);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nDDH_Encrypt %.6f\n", time);
     return CFE_ERR_NONE;
 }
 
 cfe_error cfe_ddh_decrypt(mpz_t res, cfe_ddh *s, cfe_vec *ciphertext, mpz_t key, cfe_vec *y) {
+    clock_t start = clock();
     if (!cfe_vec_check_bound(y, s->bound)) {
         return CFE_ERR_BOUND_CHECK_FAILED;
     }
@@ -162,5 +182,8 @@ cfe_error cfe_ddh_decrypt(mpz_t res, cfe_ddh *s, cfe_vec *ciphertext, mpz_t key,
     cfe_error err = cfe_baby_giant_with_neg(res, r, s->g, s->p, order, bound);
 
     mpz_clears(num, ct, t1, denom, denom_inv, r, order, bound, NULL);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nDDH_Decrypt %.6f\n", time);
     return err;
 }

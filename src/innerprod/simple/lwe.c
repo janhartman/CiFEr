@@ -40,6 +40,7 @@ void center(cfe_lwe *s, cfe_vec *t, cfe_vec *x) {
 // and configures public parameters for the scheme.
 cfe_error cfe_lwe_init(cfe_lwe *s, size_t l, mpz_t bound_x, mpz_t bound_y, size_t n) {
     cfe_error err = CFE_ERR_NONE;
+    clock_t start = clock();
 
     s->l = l;
     s->n = n;
@@ -119,6 +120,9 @@ cfe_error cfe_lwe_init(cfe_lwe *s, size_t l, mpz_t bound_x, mpz_t bound_y, size_
     cleanup:
     mpz_clears(l_z, x_i, NULL);
     mpf_clears(p_f, q_f, bound_x_f, bound_y_f, val, x, x_sqrt, tmp, sigma, one, NULL);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nLWE_Init %.6f\n", time);
 
     return err;
 }
@@ -135,12 +139,19 @@ void cfe_lwe_pub_key_init(cfe_mat *PK, cfe_lwe *s) {
 // The key is represented by a matrix with dimensions n*l whose
 // elements are random values from the interval [0, q).
 void cfe_lwe_generate_sec_key(cfe_mat *SK, cfe_lwe *s) {
+    clock_t start = clock();
     cfe_uniform_sample_mat(SK, s->q);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nLWE_KeyGen1 %.6f\n", time);
+
 }
 
 // Generates a public key for the scheme.
 // Public key is a matrix of m*l elements.
 cfe_error cfe_lwe_generate_pub_key(cfe_mat *PK, cfe_lwe *s, cfe_mat *SK) {
+    clock_t start = clock();
+
     if (SK->rows != s->n || SK->cols != s->l) {
         return CFE_ERR_MALFORMED_SEC_KEY;
     }
@@ -171,6 +182,10 @@ cfe_error cfe_lwe_generate_pub_key(cfe_mat *PK, cfe_lwe *s, cfe_mat *SK) {
     cfe_mat_free(&E);
     mpf_clear(one);
     cfe_normal_double_free(&sampler);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nLWE_KeyGen2 %.6f\n", time);
+
     return err;
 }
 
@@ -182,6 +197,7 @@ void cfe_lwe_fe_key_init(cfe_vec *sk_y, cfe_lwe *s) {
 // a secret operand.
 // Secret key is a linear combination of input vector y and master secret key.
 cfe_error cfe_lwe_derive_key(cfe_vec *sk_y, cfe_lwe *s, cfe_mat *SK, cfe_vec *y) {
+    clock_t start = clock();
     if (!cfe_vec_check_bound(y, s->bound_y)) {
         return CFE_ERR_BOUND_CHECK_FAILED;
     }
@@ -191,6 +207,10 @@ cfe_error cfe_lwe_derive_key(cfe_vec *sk_y, cfe_lwe *s, cfe_mat *SK, cfe_vec *y)
 
     cfe_mat_mul_vec(sk_y, SK, y);
     cfe_vec_mod(sk_y, sk_y, s->q);
+
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nLWE_KeyDerive %.6f\n", time);
 
     return CFE_ERR_NONE;
 }
@@ -202,6 +222,8 @@ void cfe_lwe_ciphertext_init(cfe_vec *ct, cfe_lwe *s) {
 // Encrypts vector x using public key PK.
 // The resulting ciphertext is stored in vector ct.
 cfe_error cfe_lwe_encrypt(cfe_vec *ct, cfe_lwe *s, cfe_vec *x, cfe_mat *PK) {
+    clock_t start = clock();
+
     if (!cfe_vec_check_bound(x, s->bound_x)) {
         return CFE_ERR_BOUND_CHECK_FAILED;
     }
@@ -257,6 +279,10 @@ cfe_error cfe_lwe_encrypt(cfe_vec *ct, cfe_lwe *s, cfe_vec *x, cfe_mat *PK) {
     cfe_vec_frees(&t, &ct_last, &ct_0, &r, NULL);
     cfe_mat_frees(&A_t, &PK_t, NULL);
 
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nLWE_Encrypt %.6f\n", time);
+
     return CFE_ERR_NONE;
 }
 
@@ -265,6 +291,7 @@ cfe_error cfe_lwe_encrypt(cfe_vec *ct, cfe_lwe *s, cfe_vec *x, cfe_mat *PK) {
 // sk_y is the derived secret key for decryption of <x,y>
 // y is plaintext input vector
 cfe_error cfe_lwe_decrypt(mpz_t res, cfe_lwe *s, cfe_vec *ct, cfe_vec *sk_y, cfe_vec *y) {
+    clock_t start = clock();
     if (!cfe_vec_check_bound(y, s->bound_y)) {
         return CFE_ERR_BOUND_CHECK_FAILED;
     }
@@ -321,6 +348,9 @@ cfe_error cfe_lwe_decrypt(mpz_t res, cfe_lwe *s, cfe_vec *ct, cfe_vec *sk_y, cfe
     // Cleanup
     mpz_clears(d, prod, half_q, NULL);
     cfe_vec_frees(&ct_0, &ct_last, NULL);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nLWE_Decrypt %.6f\n", time);
 
     return CFE_ERR_NONE;
 }

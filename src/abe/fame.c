@@ -28,8 +28,13 @@
 
 
 void cfe_fame_init(cfe_fame *fame) {
+    clock_t start = clock();
     mpz_init(fame->p);
     mpz_from_BIG_256_56(fame->p, (int64_t *) CURVE_Order_BN254);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nFAME_Init %.6f\n", time);
+
 }
 
 void cfe_fame_free(cfe_fame *fame) {
@@ -49,7 +54,8 @@ void cfe_fame_sec_key_free(cfe_fame_sec_key *sk) {
 }
 
 void cfe_fame_generate_master_keys(cfe_fame_pub_key *pk, cfe_fame_sec_key *sk, cfe_fame *fame) {
-    // prepare variables
+    clock_t start = clock();
+// prepare variables
     BIG_256_56 tmp_big;
     mpz_t tmp;
     mpz_init(tmp);
@@ -96,6 +102,10 @@ void cfe_fame_generate_master_keys(cfe_fame_pub_key *pk, cfe_fame_sec_key *sk, c
 
     mpz_clear(tmp);
     cfe_vec_free(&val);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nFAME_KeyGen %.6f\n", time);
+
 }
 
 void cfe_fame_cipher_init(cfe_fame_cipher *cipher, cfe_msp *msp) {
@@ -110,7 +120,8 @@ void cfe_fame_cipher_free(cfe_fame_cipher *cipher) {
 }
 
 void cfe_fame_encrypt(cfe_fame_cipher *cipher, FP12_BN254 *msg, cfe_msp *msp, cfe_fame_pub_key *pk, cfe_fame *fame) {
-    // prepare the variables
+    clock_t start = clock();
+// prepare the variables
     cfe_vec s, msp_row;
     cfe_vec_init(&s, 2);
     cfe_vec_init(&msp_row, msp->mat.cols);
@@ -195,6 +206,10 @@ void cfe_fame_encrypt(cfe_fame_cipher *cipher, FP12_BN254 *msg, cfe_msp *msp, cf
     // clear up
     cfe_vec_frees(&s, &msp_row, NULL);
     mpz_clear(tmp);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nFAME_Encrypt %.6f\n", time);
+
 }
 
 void cfe_fame_attrib_keys_init(cfe_fame_attrib_keys *keys, size_t num_attrib) {
@@ -210,7 +225,8 @@ void cfe_fame_attrib_keys_free(cfe_fame_attrib_keys *keys) {
 
 void cfe_fame_generate_attrib_keys(cfe_fame_attrib_keys *keys, int *gamma,
                                    size_t num_attrib, cfe_fame_sec_key *sk, cfe_fame *fame) {
-    // prepare variables
+    clock_t start = clock();
+// prepare variables
     cfe_vec r, sigma;
     cfe_vec_init(&r, 2);
     cfe_vec_init(&sigma, num_attrib);
@@ -307,11 +323,16 @@ void cfe_fame_generate_attrib_keys(cfe_fame_attrib_keys *keys, int *gamma,
     // clear up
     mpz_clears(pow[0], pow[1], pow[2], a_inv[0], a_inv[1], sigma_prime, NULL);
     cfe_vec_frees(&sigma, &r, NULL);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nFAME_KeyDerive %.6f\n", time);
+
 }
 
 cfe_error cfe_fame_decrypt(FP12_BN254 *res, cfe_fame_cipher *cipher,
                            cfe_fame_attrib_keys *keys, cfe_fame *fame) {
     // determine the intersection between owned attributes and specified in encryption
+    clock_t start = clock();
     size_t count_attrib = 0;
     size_t positions_keys[keys->num_attrib];
     size_t positions_msp[keys->num_attrib];
@@ -386,6 +407,10 @@ cfe_error cfe_fame_decrypt(FP12_BN254 *res, cfe_fame_cipher *cipher,
     cfe_mat_frees(&mat_for_keys_trans, &mat_for_keys, NULL);
     cfe_vec_frees(&one_vec, &alpha, &tmp, NULL);
     mpz_clear(zero);
+
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nFAME_Decrypt %.6f\n", time);
 
     return CFE_ERR_NONE;
 }

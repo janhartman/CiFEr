@@ -19,7 +19,8 @@
 
 #include <stdbool.h>
 #include <gmp.h>
-
+#include <time.h>
+#include <stdio.h>
 /**
  * \file
  * \ingroup data

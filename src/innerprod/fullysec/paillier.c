@@ -23,6 +23,7 @@
 #include "sample/normal_double.h"
 
 cfe_error cfe_paillier_init(cfe_paillier *s, size_t l, size_t lambda, size_t bit_len, mpz_t bound_x, mpz_t bound_y) {
+    clock_t start = clock();
     mpz_t p, q, n, n_square, check, g_prime, g, n_to_5;
     mpz_inits(p, q, n, n_square, check, g_prime, g, n_to_5, NULL);
 
@@ -91,6 +92,10 @@ cfe_error cfe_paillier_init(cfe_paillier *s, size_t l, size_t lambda, size_t bit
     cleanup:
     mpz_clears(p, q, n, n_square, check, g_prime, g, n_to_5, NULL);
     mpf_clear(sigma);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nPaillier_Init %.6f\n", time);
+
     return err;
 }
 
@@ -116,6 +121,7 @@ void cfe_paillier_master_keys_init(cfe_vec *msk, cfe_vec *mpk, cfe_paillier *s) 
 }
 
 cfe_error cfe_paillier_generate_master_keys(cfe_vec *msk, cfe_vec *mpk, cfe_paillier *s) {
+    clock_t start = clock();
     mpf_t one;
     mpf_init_set_ui(one, 1);
     cfe_normal_double sampler;
@@ -138,15 +144,24 @@ cfe_error cfe_paillier_generate_master_keys(cfe_vec *msk, cfe_vec *mpk, cfe_pail
     mpf_clear(one);
     mpz_clears(x, y, NULL);
     cfe_normal_double_free(&sampler);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nPaillier_KeyGen %.6f\n", time);
+
     return CFE_ERR_NONE;
 }
 
 cfe_error cfe_paillier_derive_key(mpz_t derived_key, cfe_paillier *s, cfe_vec *msk, cfe_vec *y) {
+    clock_t start = clock();
     if (!cfe_vec_check_bound(y, s->bound_y)) {
         return CFE_ERR_BOUND_CHECK_FAILED;
     }
 
     cfe_vec_dot(derived_key, msk, y);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nPaillier_KeyDerive %.6f\n", time);
+
     return CFE_ERR_NONE;
 }
 
@@ -155,6 +170,7 @@ void cfe_paillier_ciphertext_init(cfe_vec *ciphertext, cfe_paillier *s) {
 }
 
 cfe_error cfe_paillier_encrypt(cfe_vec *ciphertext, cfe_paillier *s, cfe_vec *x, cfe_vec *mpk) {
+    clock_t start = clock();
     if (!cfe_vec_check_bound(x, s->bound_x)) {
         return CFE_ERR_BOUND_CHECK_FAILED;
     }
@@ -179,10 +195,15 @@ cfe_error cfe_paillier_encrypt(cfe_vec *ciphertext, cfe_paillier *s, cfe_vec *x,
     }
 
     mpz_clears(n_div_4, r, c_0, c_i, x_i, mpk_i, tmp1, tmp2, NULL);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nPaillier_Encrypt %.6f\n", time);
+
     return CFE_ERR_NONE;
 }
 
 cfe_error cfe_paillier_decrypt(mpz_t res, cfe_paillier *s, cfe_vec *ciphertext, mpz_t key, cfe_vec *y) {
+    clock_t start = clock();
     if (!cfe_vec_check_bound(y, s->bound_y)) {
         return CFE_ERR_BOUND_CHECK_FAILED;
     }
@@ -211,5 +232,9 @@ cfe_error cfe_paillier_decrypt(mpz_t res, cfe_paillier *s, cfe_vec *ciphertext, 
     }
 
     mpz_clears(key_neg, c_0, c_i, y_i, tmp, half_n, NULL);
+    clock_t end = clock();
+    double time = ((double) (end - start)) / CLOCKS_PER_SEC;
+    printf("\nPaillier_Decrypt %.6f\n", time);
+
     return CFE_ERR_NONE;
 }
