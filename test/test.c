@@ -26,13 +26,13 @@ int main(int argc, char *argv[]) {
     }
 
     MunitSuite ddh_suites[] = {
-            ddh_suite,
+            //ddh_suite,
             //ddh_multi_suite,
-            //lwe_suite,
-            damgard_suite,
+            lwe_suite,
+            //damgard_suite,
             //damgard_multi_suite,
             //lwe_fully_secure_suite,
-            paillier_suite,
+            //paillier_suite,
             {NULL, NULL, NULL, 0, MUNIT_SUITE_OPTION_NONE}
     };
 

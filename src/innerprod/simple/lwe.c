@@ -42,75 +42,71 @@ cfe_error cfe_lwe_init(cfe_lwe *s, size_t l, mpz_t bound_x, mpz_t bound_y, size_
     cfe_error err = CFE_ERR_NONE;
     clock_t start = clock();
 
+    size_t sec = 128;
+    size_t i = 10;
+
+    double b = sec / 0.265;
+    double delta = pow(pow(3.14159 * b, 1/b) * b / (2 * 3.14159 * 2.71828), 1 / (2 * b - 2));
+
     s->l = l;
     s->n = n;
     s->A.mat = NULL;
     mpz_init_set(s->bound_x, bound_x);
     mpz_init_set(s->bound_y, bound_y);
 
-    mpf_t p_f, q_f, bound_x_f, bound_y_f, val, x, x_sqrt, tmp, sigma, one;
-    mpf_inits(s->sigma_q, p_f, q_f, bound_x_f, bound_y_f, val, x, x_sqrt, tmp, sigma, one, NULL);
+    mpf_t p_f, q_f, bound_x_f, bound_y_f, sigma_prime, tmp, sigma, one;
+    mpf_inits(s->sigma_q, p_f, q_f, bound_x_f, bound_y_f, sigma_prime, tmp, sigma, one, NULL);
 
-    mpz_t l_z, x_i;
-    mpz_inits(s->p, s->q, x_i, l_z, NULL);
+    mpz_t l_z;
+    mpz_inits(s->p, s->q, l_z, NULL);
     mpz_set_ui(l_z, l);
 
-    size_t n_bits_p = mpz_sizeinbase(bound_x, 2) + mpz_sizeinbase(bound_y, 2) + mpz_sizeinbase(l_z, 2) + 2;
-    size_t n_bits_q;  // to prevent compiler warning "jump skips initialization"
+    bool safe = false;
+    while (!safe) {
+        if (cfe_get_prime(s->q, i, false)) {
+            cfe_lwe_free(s);
+            err = CFE_ERR_PRIME_GEN_FAILED;
+            goto cleanup;
+        }
 
-    if (cfe_get_prime(s->p, n_bits_p, false)) {
-        cfe_lwe_free(s);
-        err = CFE_ERR_PRIME_GEN_FAILED;
-        goto cleanup;
+        s->m = (n + l + 1) * i + 2 * sec;
+        mpz_mul(s->p, bound_x, bound_y);
+        mpz_mul(s->p, s->p, l_z);
+
+        mpf_set_z(p_f, s->p);
+        mpf_set_z(q_f, s->q);
+        mpf_set_z(bound_x_f, bound_x);
+        mpf_set_z(bound_y_f, bound_y);
+        mpf_div(sigma, q_f, p_f);
+        mpf_div(sigma, sigma, bound_y_f);
+        mpf_set_d(tmp, 4 * sqrt(l * s->m * sec));
+        mpf_div(sigma, sigma, tmp);
+        mpf_set_d(tmp, sqrt(l));
+        mpf_div(sigma_prime, sigma, tmp);
+        mpf_div(sigma_prime, sigma_prime, bound_x_f);
+
+        double sigma_prime_f = mpf_get_d(sigma_prime);
+        double q_f_f = mpf_get_d(q_f);
+        safe = true;
+
+        for (size_t m_test = n; m_test < s->m; m_test++) {
+            double d = (double) n + (double) m_test;
+            double left = sigma_prime_f * sqrt(b);
+            double right = pow(delta, 2 * b - d - 1) * pow(q_f_f, ((double) m_test) / d );
+
+            if (left < right) {
+                safe = false;
+                break;
+            }
+        }
+        
+        i++;
     }
 
-    mpf_set_z(p_f, s->p);
-    mpf_set_z(bound_x_f, bound_x);
-    mpf_set_z(bound_y_f, bound_y);
-
-    mpf_sqrt_ui(tmp, l);
-    mpf_mul(val, bound_x_f, tmp);
-    mpf_add_ui(val, val, 1);
-    mpf_mul(x, val, p_f);
-    mpf_mul(x, x, bound_y_f);
-    mpf_sqrt_ui(tmp, n + l + 1);
-    mpf_mul_ui(tmp, tmp, 8 * n);
-    mpf_mul(x, x, tmp);
-    mpf_sqrt(x_sqrt, x);
-    mpf_mul(x, x, x_sqrt);
-    mpz_set_f(x_i, x);
-    n_bits_q = mpz_sizeinbase(x_i, 2) + 1;
-
-    if (cfe_get_prime(s->q, n_bits_q, false)) {
-        cfe_lwe_free(s);
-        err = CFE_ERR_PRIME_GEN_FAILED;
-        goto cleanup;
-    }
-
-    s->m = (n + l + 1) * n_bits_q + 2 * n + 1;
-
+    mpf_trunc(sigma, sigma);
     mpf_set_ui(one, 1);
-    mpf_set_prec(sigma, n);
-    mpf_sqrt_ui(tmp, 2 * l * s->m * n);
-    mpf_mul_ui(tmp, tmp, 2);
-    mpf_div(tmp, one, tmp);
-    mpf_div(sigma, tmp, p_f);
-    mpf_div(sigma, sigma, bound_y_f);
-    mpf_set_z(q_f, s->q);
-    mpf_mul(s->sigma_q, sigma, q_f);
-    mpf_ceil(s->sigma_q, s->sigma_q);
-
-    // sanity check if the parameters satisfy theoretical bounds
-    mpf_div(val, s->sigma_q, val);
-    mpf_sqrt_ui(tmp, n);
-    mpf_mul_ui(tmp, tmp, 2);
-
-    if (mpf_cmp(val, tmp) < 1) {
-        // parameter generation failed, sigma_q too small
-        cfe_lwe_free(s);
-        err = CFE_ERR_PARAM_GEN_FAILED;
-        goto cleanup;
-    }
+    mpf_add(sigma, sigma, one);
+    mpf_set(s->sigma_q, sigma);
 
     // Create a random m*n matrix A
     // The matrix is a public parameter of the scheme.
@@ -118,8 +114,8 @@ cfe_error cfe_lwe_init(cfe_lwe *s, size_t l, mpz_t bound_x, mpz_t bound_y, size_
     cfe_uniform_sample_mat(&s->A, s->q);
 
     cleanup:
-    mpz_clears(l_z, x_i, NULL);
-    mpf_clears(p_f, q_f, bound_x_f, bound_y_f, val, x, x_sqrt, tmp, sigma, one, NULL);
+    mpz_clears(l_z, NULL);
+    mpf_clears(p_f, q_f, bound_x_f, bound_y_f, sigma_prime, tmp, sigma, one, NULL);
     clock_t end = clock();
     double time = ((double) (end - start)) / CLOCKS_PER_SEC;
     printf("\nLWE_Init %.6f\n", time);
