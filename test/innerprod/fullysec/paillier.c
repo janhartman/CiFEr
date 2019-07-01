@@ -22,7 +22,7 @@
 
 MunitResult test_paillier_end_to_end(const MunitParameter *params, void *data) {
     size_t l = l_bench;
-    size_t bit_len = 1024;
+    size_t bit_len = 1536;
     size_t lambda = 128;
     mpz_t bound_x, bound_y, derived_key, xy_check, xy, bound_x_neg, bound_y_neg;
     mpz_inits(bound_x, bound_y, derived_key, xy_check, xy, bound_x_neg, bound_y_neg, NULL);
